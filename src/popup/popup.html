@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="theme-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickLinker</title>
+  <style>
+    * { box-sizing: border-box; }
+    html.theme-dark {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --surface-2: #0f3460;
+      --text: #f4f7fb;
+      --muted: #b7c4d8;
+      --border: rgba(255,255,255,0.12);
+      --accent: #6c8cff;
+      --accent-strong: #8ea4ff;
+      --danger: #ff6b6b;
+      --shadow: rgba(0,0,0,0.35);
+    }
+    html.theme-light {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef3ff;
+      --text: #1f2937;
+      --muted: #64748b;
+      --border: #d8e0ee;
+      --accent: #667eea;
+      --accent-strong: #5167d5;
+      --danger: #dc2626;
+      --shadow: rgba(30,41,59,0.12);
+    }
+    body {
+      width: 380px;
+      min-height: 560px;
+      max-height: 600px;
+      margin: 0;
+      overflow-y: auto;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 14px;
+    }
+    button { font: inherit; }
+    .popup-shell { position: relative; min-height: 560px; }
+    .popup-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 10px var(--shadow);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--accent);
+    }
+    #themeToggle {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .popup-body { padding: 14px; display: grid; gap: 14px; }
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: 0 8px 22px var(--shadow);
+    }
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    #detectedCode {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 800;
+      word-break: break-word;
+    }
+    #optionsBtn, #ageConfirmBtn, #updateConfirmBtn {
+      width: 100%;
+      min-height: 40px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .site-toggle-row, .recent-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+    }
+    .site-toggle-row:last-child, .recent-row:last-child { border-bottom: 0; }
+    .site-toggle-meta { min-width: 0; }
+    .site-toggle-name { font-weight: 700; }
+    .site-toggle-url {
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .switch { position: relative; width: 42px; height: 24px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch span {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .switch span::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+    .switch input:checked + span { background: var(--accent); }
+    .switch input:checked + span::before { transform: translateX(18px); }
+    .recent-row {
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .recent-row span { font-weight: 700; }
+    .recent-row small { color: var(--muted); white-space: nowrap; }
+    .empty-state { color: var(--muted); padding: 8px 0; }
+    .popup-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px 16px;
+      border-top: 1px solid var(--border);
+    }
+    #optionsBtn { flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    #versionText { color: var(--muted); font-size: 12px; }
+    #ageGate, #updateNotice {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      opacity: 1;
+      transition: opacity 300ms ease;
+    }
+    #updateNotice[hidden] { display: none; }
+    .age-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.36);
+      backdrop-filter: blur(6px);
+    }
+    .age-card {
+      position: relative;
+      width: 100%;
+      padding: 18px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .age-card h2 { margin: 0 0 10px; font-size: 20px; }
+    .age-card p { color: var(--muted); line-height: 1.55; margin: 0 0 14px; }
+    .update-card {
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+    }
+    .update-card h2,
+    .update-card p,
+    .update-card button { flex-shrink: 0; }
+    .update-list {
+      margin: 0 0 12px;
+      padding-left: 18px;
+      color: var(--text);
+      line-height: 1.55;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .update-list li { margin: 7px 0; }
+    .update-full-log {
+      flex-shrink: 0;
+      display: block;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .update-full-log:hover { color: var(--text); text-decoration: underline; }
+    .age-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 10px 0;
+      line-height: 1.45;
+    }
+    .age-check input { margin-top: 3px; accent-color: var(--accent); }
+    #ageConfirmBtn {
+      margin-top: 12px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    #ageConfirmBtn.ready {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .age-note { display: block; margin-top: 10px; color: var(--muted); font-size: 12px; text-align: center; }
+    .age-gate {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .age-gate-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    }
+    .age-gate-card {
+      position: relative; z-index: 1;
+      background: #16213e; border: 1px solid #0f3460;
+      border-radius: 16px; padding: 28px 24px; width: 280px;
+      text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .age-icon { font-size: 36px; display: block; margin-bottom: 12px; }
+    .age-title { font-size: 18px; font-weight: 700; color: #e0e0e0; margin-bottom: 8px; }
+    .age-desc { font-size: 12px; line-height: 1.6; color: #8a9ab0; margin-bottom: 18px; }
+    .age-checks { text-align: left; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .age-check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #c0cce0; cursor: pointer; }
+    .age-check-row input[type=checkbox] { margin-top: 2px; flex-shrink: 0; accent-color: #667eea; }
+    .age-confirm-btn {
+      width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: all .2s;
+      background: #2a3a5a; color: #5a7ab0; pointer-events: none;
+    }
+    .age-confirm-btn:not([disabled]) {
+      background: linear-gradient(135deg, #4361ee, #3a0ca3);
+      color: #fff; pointer-events: auto;
+    }
+    .age-confirm-btn:not([disabled]):hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .age-version-note { font-size: 10px; color: #3a4a6a; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <!-- Age Gate Overlay -->
+  <div class="age-gate" id="ageGate" style="display:none">
+    <div class="age-gate-backdrop"></div>
+    <div class="age-gate-card">
+      <span class="age-icon">🔞</span>
+      <div class="age-title">年齡驗證</div>
+      <div class="age-desc">本擴充功能涉及成人內容網站。<br>繼續使用前請確認以下事項。</div>
+      <div class="age-checks">
+        <label class="age-check-row">
+          <input type="checkbox" id="ageCheck1">
+          <span>我確認我已年滿 18 歲</span>
+        </label>
+        <label class="age-check-row">
+          <input type="checkbox" id="ageCheck2">
+          <span>我了解本工具的用途，且在我所在地區使用此類內容合法</span>
+        </label>
+      </div>
+      <button class="age-confirm-btn" id="ageConfirmBtn" disabled>確認並繼續</button>
+      <div class="age-version-note" id="ageVersionNote"></div>
+    </div>
+  </div>
+  <div class="popup-shell">
+    <div id="updateNotice" hidden>
+      <div class="age-backdrop"></div>
+      <div class="age-card update-card">
+        <h2 data-i18n="update_title"></h2>
+        <p id="updateVersionText"></p>
+        <ul class="update-list">
+          <li data-i18n="update_item_unavailable_hidden"></li>
+          <li data-i18n="update_item_notification_gate"></li>
+          <li data-i18n="update_item_default_sites"></li>
+        </ul>
+        <a class="update-full-log" href="https://github.com/avthing/QuickLinker#更新紀錄" target="_blank" rel="noopener" data-i18n="update_full_log"></a>
+        <button id="updateConfirmBtn" type="button" data-i18n="update_confirm"></button>
+      </div>
+    </div>
+
+    <header class="popup-header">
+      <div class="logo">
+        <span class="logo-mark">QL</span>
+        <span>QuickLinker</span>
+      </div>
+      <button id="themeToggle" type="button" aria-label="Toggle theme">🌙</button>
+    </header>
+
+    <main class="popup-body">
+      <section class="section detect-block">
+        <h2 class="section-title" data-i18n="detected"></h2>
+        <div id="detectedCode" data-i18n="no_code"></div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title" data-i18n="sites"></h2>
+        <div id="siteToggleList"></div>
+      </section>
+
+      <section id="recentSearchSection" class="section">
+        <h2 class="section-title" data-i18n="recent"></h2>
+        <div id="recentSearchList"></div>
+      </section>
+    </main>
+
+    <footer class="popup-footer">
+      <button id="optionsBtn" type="button" data-i18n="options"></button>
+      <span id="versionText"></span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
