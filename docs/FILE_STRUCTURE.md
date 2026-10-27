@@ -28,9 +28,58 @@ QuickLinker/
 │   ├── icon256.png
 │   └── icon512.png
 │
-└── 📚 docs/                      # 文件
+└── 🌐 docs/                      # 官方網站 + 文件（GitHub Pages 發布來源）
+    ├── index.html                # 官網頁面（semantic markup + data-i18n 標記）
+    ├── styles.css                # 官網樣式（design token + 雙主題）
+    ├── main.js                   # 官網腳本（主題、i18n、進場動畫、捲動效果）
+    ├── i18n/                     # 官網翻譯字典
+    │   ├── zh-TW.json            # 繁體中文（原文基準）
+    │   ├── en.json               # 英文
+    │   ├── ja.json               # 日文
+    │   └── ko.json               # 韓文
+    ├── icons/                    # 官網用圖示（必須放在 docs/ 內才會被發布）
+    │   ├── icon64.png
+    │   ├── icon128.png
+    │   └── icon256.png
+    ├── demo.mp4                  # 官網 hero 區示範影片
     ├── FILE_STRUCTURE.md         # 本文件
-    └── USER_GUIDE.md             # 使用手冊（給一般用戶看）
+    ├── USER_GUIDE.md             # 使用手冊（給一般用戶看）
+    └── STORE_DESC.md             # Chrome 商店描述文案
+```
+
+---
+
+## 🌐 官方網站
+
+網址：尚未啟用 GitHub Pages
+
+### 部署方式
+
+GitHub Pages 直接以 **`main` 分支的 `/docs` 目錄**作為發布來源（legacy build，無 GitHub Actions workflow）。
+**把 `docs/` 的變更 merge 進 `main` 並 push，即自動發布**，不需要任何建置步驟。
+
+⚠️ **只有 `docs/` 內的檔案會被發布。** 根目錄的 `icons/` 不在發布範圍內，
+所以官網用到的圖示必須另外複製一份到 `docs/icons/`——這正是先前 logo 與 favicon
+在線上回 404 的原因。
+
+### 本機預覽
+
+官網會以 `fetch` 載入 `i18n/*.json`，用 `file://` 直接開啟會被 CORS 擋住
+（此時頁面會退回顯示 HTML 內建的繁體中文）。預覽請起一個本機 server：
+
+```bash
+cd docs && python3 -m http.server 8000
+# 然後開啟 http://localhost:8000/
+# 指定語言：http://localhost:8000/?lang=ja
+```
+
+### 維護須知
+
+- **零建置**：官網刻意不使用 package.json、bundler 或任何 CDN 依賴，所有 CSS/JS 皆為本機靜態檔。
+- **改文案時要同步四支 JSON**：`docs/i18n/` 下四個語言檔的 key 必須完全一致，
+  且 `zh-TW.json` 的內容需與 `index.html` 內文逐字相同（HTML 內文是 JSON 載入失敗時的 fallback）。
+- **主題 token 對齊擴充功能**：`docs/styles.css` 的 `--bg / --surface / --text / --muted /
+  --border / --accent` 命名刻意與 `src/options/options.html` 一致，兩邊視為同一套設計語言。
 ```
 
 ---

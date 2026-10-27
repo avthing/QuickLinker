@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!--
+    內文一律寫繁中原文並標 data-i18n。
+    如此一來即使 i18n JSON 載入失敗（例如被人用 file:// 直接開啟，fetch 會被 CORS 擋），
+    頁面仍是完整可讀的繁中版，而不是空白或裸露的 key 名。
+  -->
+  <title data-i18n="meta_title">QuickLinker — 智慧連結聚合工具</title>
+  <meta name="description" data-i18n="meta_desc" data-i18n-attr="content"
+        content="QuickLinker 是一款 Chrome 擴充功能，自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋並即時顯示連結可用性。">
+  <meta name="keywords" content="Chrome Extension, Link Aggregator, Quick Search, Multi-Site Search, QuickLinker">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" data-i18n="meta_title" data-i18n-attr="content" content="QuickLinker — 智慧連結聚合工具">
+  <meta property="og:description" data-i18n="meta_desc" data-i18n-attr="content"
+        content="QuickLinker 是一款 Chrome 擴充功能，自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋並即時顯示連結可用性。">
+  <meta property="og:image" content="icons/icon256.png">
+  <meta name="theme-color" content="#fbfcfe">
+
+  <link rel="icon" type="image/png" href="icons/icon64.png">
+  <link rel="apple-touch-icon" href="icons/icon256.png">
+
+  <!--
+    唯一允許的 inline script：在 styles.css 之前套用主題，避免首屏閃白。
+    值域封閉為 'light' | 'dark'，未設定即跟隨系統（不存 'auto'）。
+  -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('ql-theme');
+      if (t === 'dark' || t === 'light') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- ============ Navbar ============ -->
+  <header class="navbar" id="navbar">
+    <div class="container">
+      <a class="logo" href="#top">
+        <img src="icons/icon64.png" alt="QuickLinker" width="30" height="30">
+        <span>QuickLinker</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" data-i18n="nav_features">核心特色</a></li>
+          <li><a href="#how-it-works" data-i18n="nav_how">使用方式</a></li>
+          <li><a href="#use-cases" data-i18n="nav_cases">適用場景</a></li>
+          <li><a href="#download" data-i18n="nav_download">立即安裝</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <select class="lang-select" id="langSelect"
+                data-i18n="lang_label" data-i18n-attr="aria-label" aria-label="選擇語言">
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+        </select>
+
+        <button class="icon-btn" id="themeToggle" type="button"
+                data-i18n="theme_toggle" data-i18n-attr="aria-label" aria-label="切換深淺主題">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container">
+        <span class="eyebrow" data-i18n="hero_badge">免費 · 開源 · 隱私優先</span>
+        <h1>QuickLinker</h1>
+        <p class="hero-tagline" data-i18n="hero_tagline">
+          自動偵測網頁中的關鍵資訊，一鍵在多個網站同時搜尋，並即時告訴你哪些連結真的存在。
+        </p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" id="heroInstall" href="#" target="_blank" rel="noopener"
+             data-i18n="hero_cta_install">加到 Chrome — 免費安裝</a>
+          <a class="btn btn-secondary" id="heroRepo" href="#" target="_blank" rel="noopener"
+             data-i18n="hero_cta_github">在 GitHub 上查看</a>
+        </div>
+        <p class="hero-note" data-i18n="hero_note">不需註冊帳號，所有資料只存在你的瀏覽器裡。</p>
+
+        <div class="demo-frame reveal">
+          <div class="demo-bar" aria-hidden="true">
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+          </div>
+          <video src="demo.mp4" autoplay muted loop playsinline preload="metadata"
+                 data-i18n="demo_aria" data-i18n-attr="aria-label"
+                 aria-label="QuickLinker 功能演示影片"></video>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Features ============ -->
+    <section id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 class="section-title" data-i18n="feat_heading">核心特色</h2>
+          <p class="section-subtitle" data-i18n="feat_sub">把「複製、切換分頁、貼上、搜尋」這串動作壓縮成一次點擊。</p>
+        </div>
+
+        <div class="bento">
+          <article class="card card--wide reveal">
+            <span class="card-icon" aria-hidden="true">🎯</span>
+            <h3 data-i18n="feat_detect_title">智慧內容偵測</h3>
+            <p data-i18n="feat_detect_desc">自動從網頁中提取編號、代碼、ID 等關鍵資訊，不用手動複製貼上。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🔍</span>
+            <h3 data-i18n="feat_multi_title">即時多站搜尋</h3>
+            <p data-i18n="feat_multi_desc">一次在多個網站同時查詢，並即時標示每個連結是否真的存在。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🖱️</span>
+            <h3 data-i18n="feat_context_title">右鍵選單整合</h3>
+            <p data-i18n="feat_context_desc">選取畫面上任何一段文字，直接從右鍵選單發動搜尋。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">⚙️</span>
+            <h3 data-i18n="feat_custom_title">高度可客製化</h3>
+            <p data-i18n="feat_custom_desc">自訂搜尋網站、網址樣板與掃描模式，完全依你的工作流程調整。</p>
+          </article>
+
+          <article class="card reveal">
+            <span class="card-icon" aria-hidden="true">🔒</span>
+            <h3 data-i18n="feat_privacy_title">隱私優先</h3>
+            <p data-i18n="feat_privacy_desc">所有設定只存在本機，不上傳任何資料，原始碼公開可審查。</p>
+          </article>
+
+          <article class="card card--wide reveal">
+            <span class="card-icon" aria-hidden="true">⚡</span>
+            <h3 data-i18n="feat_speed_title">輕量不卡頓</h3>
+            <p data-i18n="feat_speed_desc">以 Manifest V3 打造，背景常駐資源極低，不拖慢瀏覽速度。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ How it works ============ -->
+    <section id="how-it-works">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 class="section-title" data-i18n="how_heading">使用方式</h2>
+          <p class="section-subtitle" data-i18n="how_sub">安裝完就能用，不需要任何設定。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step reveal">
+            <span class="step-num">1</span>
+            <h3 data-i18n="step_1_title">自動偵測</h3>
+            <p data-i18n="step_1_desc">開啟支援的網站時，QuickLinker 會自動抓出關鍵資訊並顯示浮動按鈕。</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">2</span>
+            <h3 data-i18n="step_2_title">展開查看</h3>
+            <p data-i18n="step_2_desc">點擊按鈕展開所有可搜尋的網站，並即時檢查每個連結的可用性。</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">3</span>
+            <h3 data-i18n="step_3_title">一鍵跳轉</h3>
+            <p data-i18n="step_3_desc">點任一網站即可直接前往搜尋結果，重複的分頁會自動去重。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Use cases ============ -->
+    <div class="use-cases-wrap">
+      <section id="use-cases">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2 class="section-title" data-i18n="case_heading">適用場景</h2>
+            <p class="section-subtitle" data-i18n="case_sub">只要你的工作需要在多個網站間反覆查同一個關鍵字，它就派得上用場。</p>
+          </div>
+
+          <div class="cases">
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">📚</span>
+              <h3 data-i18n="case_dev_title">開發者</h3>
+              <p data-i18n="case_dev_desc">在 GitHub、Stack Overflow 與各家文件之間，快速追同一則錯誤訊息或 Issue。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">🛒</span>
+              <h3 data-i18n="case_shop_title">電商比價</h3>
+              <p data-i18n="case_shop_desc">同一件商品在多個購物網站同時查，一眼看出哪裡有貨、哪裡最便宜。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">📖</span>
+              <h3 data-i18n="case_research_title">研究人員</h3>
+              <p data-i18n="case_research_desc">用同一組關鍵字橫掃多個學術資料庫與論文網站，不必逐站重打。</p>
+            </article>
+            <article class="case reveal">
+              <span class="case-tile" aria-hidden="true">🎬</span>
+              <h3 data-i18n="case_media_title">內容愛好者</h3>
+              <p data-i18n="case_media_desc">在各個平台之間搜尋影片、音樂或書籍，先確認有沒有再點進去。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ CTA ============ -->
+    <section id="download" class="cta">
+      <div class="container">
+        <div class="cta-box reveal">
+          <h2 class="section-title" data-i18n="cta_heading">立即開始使用</h2>
+          <p class="section-subtitle" data-i18n="cta_sub">三十秒完成安裝，之後每次搜尋都省下三十秒。</p>
+
+          <ul class="checklist">
+            <li data-i18n="cta_check_1">前往 Chrome 線上應用程式商店</li>
+            <li data-i18n="cta_check_2">點擊「加到 Chrome」</li>
+            <li data-i18n="cta_check_3">開始使用，不需任何設定</li>
+          </ul>
+
+          <div class="hero-buttons">
+            <a class="btn btn-primary" id="ctaInstall" href="#" target="_blank" rel="noopener"
+               data-i18n="cta_install">加到 Chrome</a>
+            <a class="btn btn-secondary" id="ctaRepo" href="#" target="_blank" rel="noopener"
+               data-i18n="cta_source">查看原始碼</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="footer-links">
+        <li><a id="footerStore" href="#" target="_blank" rel="noopener" data-i18n="footer_store">Chrome 商店</a></li>
+        <li><a id="footerRepo" href="#" target="_blank" rel="noopener" data-i18n="footer_github">GitHub</a></li>
+        <li><a href="https://github.com/avthing/QuickLinker/issues" target="_blank" rel="noopener" data-i18n="footer_issues">回報問題</a></li>
+        <li><a href="https://github.com/avthing/QuickLinker/blob/main/README.md" target="_blank" rel="noopener" data-i18n="footer_docs">使用文件</a></li>
+        <li><a href="https://github.com/avthing/QuickLinker/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="footer_license">授權條款</a></li>
+      </ul>
+
+      <a class="footer-social" id="footerSocial" href="#" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+
+      <p class="footer-copy">
+        &copy; <span id="year">2025</span>
+        <span data-i18n="footer_copy">QuickLinker · 以 MIT 授權釋出</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
