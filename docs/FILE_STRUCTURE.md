@@ -51,7 +51,7 @@ QuickLinker/
 
 ## 🌐 官方網站
 
-網址：尚未啟用 GitHub Pages
+網址：<https://avthing.github.io/QuickLinker/>
 
 ### 部署方式
 
